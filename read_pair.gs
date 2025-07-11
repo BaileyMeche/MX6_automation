@@ -13,10 +13,10 @@ const NUMBERS_TO_FIND     = [ ];
  */
 function startVisionOcr() {
   const token = ScriptApp.getOAuthToken();
-  const bucket = GCS_INPUT_BUCKET;         // 'invoicing-inputs'
+  const bucket = GCS_INPUT_BUCKET;         // '-inputs'
   const prefix = GCS_INPUT_PREFIX;         // e.g. '' or 'some/subfolder'
   
-  // List all objects under invoices-inputs/
+  // List all objects under -inputs/
   const listUrl = `https://storage.googleapis.com/storage/v1/b/${bucket}/o`
                 + (prefix ? `?prefix=${encodeURIComponent(prefix + '/')}` : '');
   const listRes = UrlFetchApp.fetch(listUrl, {
@@ -191,7 +191,7 @@ function scanFolderPdfsForNumbers() {
         found[pdfName] = found[pdfName] || [];
         if (!found[pdfName].includes(num)) {
           found[pdfName].push(num);
-          Logger.log(`✔ ${pdfName}: found "${num}"`);
+          Logger.log(`${pdfName}: found "${num}"`);
         }
       }
     });
@@ -262,7 +262,7 @@ function clearGcsBucket(bucketName, prefix = '') {
       muteHttpExceptions: true
     });
     if (delRes.getResponseCode() !== 204) {
-      Logger.log(`⚠️ Could not delete gs://${bucketName}/${obj.name}: ${delRes.getResponseCode()}`);
+      Logger.log(`Could not delete gs://${bucketName}/${obj.name}: ${delRes.getResponseCode()}`);
     } else {
       Logger.log(`Deleted gs://${bucketName}/${obj.name}`);
     }
@@ -270,12 +270,12 @@ function clearGcsBucket(bucketName, prefix = '') {
 }
 
 /**
- * Clears both your invoicing-inputs and invoicing-outputs buckets.
+ * Clears both your buckets.
  */
 function clearAllBuckets() {
   // Replace these names if yours differ
-  const inputBucket  = 'invoicing-inputs';
-  const outputBucket = 'invoicing-outputs';
+  const inputBucket  = '-inputs';
+  const outputBucket = '-outputs';
   
   Logger.log('Clearing input bucket...');
   clearGcsBucket(inputBucket);
