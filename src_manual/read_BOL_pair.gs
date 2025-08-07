@@ -1,36 +1,16 @@
-// const GCS_BUCKET_NAME   = 'invoice-auto-465519';   // replace with your GCP project ID
-
 /**
  * CONFIGURATION – make these exactly your bucket names!
  */
-const DRIVE_FOLDER_ID     = '1h6NB9RaT1z1lPXq0RoSJy3AyApUyd5bu';
-const GCS_INPUT_BUCKET    = 'invoicing-input';
-const GCS_OUTPUT_BUCKET   = 'invoicing-output';
+const DRIVE_FOLDER_ID     = '';
+const GCS_INPUT_BUCKET    = '';
+const GCS_OUTPUT_BUCKET   = '';
 const GCS_INPUT_PREFIX    = '';   // if you want to drop files at the bucket root, leave blank
 const GCS_OUTPUT_PREFIX   = '';   // same here
-//const NUMBERS_TO_FIND     = ['7172025']
-  // '56014', '56105', '56126', '2852', '56174', '56160']; 
-//"7172025-2", "7172025-1", "7172025-3", "71125-1", "5583-9R", "5583-10R", "5583-11", "5583-12", "5587-3", "5583-13", "07192025-Air", "2500723-10", "5583-11R",
-const YOUR_PROJECT_ID     = 'invoice-auto-admin'
-
-const FOLDER_KEY_MAP = {
-    '27822': ['7172025-2'],
-    '27823': ['7172025-1'],
-    '27824': ['7172025-3'],
-    '27847': ['71125-1', '56014'],
-    '27848': ['5583-9R', '56105'],
-    '27849': ['5583-10R', '56126'],
-    '27850': ['5583-11'],
-    '27851': ['5583-12'],
-    '27854': ['5587-3'],
-    '27868': ['5583-13'],
-    '27877': ['07192025-Air', '2852'],
-    '27878': ['2500723-10', '56174'],
-    '27879': [ ],
-    '27880': ['5583-11R', '56160'],
-    // you can add more keys mapping to multiple labels, e.g.
-    // '12345': ['A139807', '7172025-2']
-  };
+const YOUR_PROJECT_ID     = ''
+const FOLDER_KEY_MAP = 
+{
+    'xxx': ['xxxx', 'xxx-x']
+}
 
 const NUMBERS_TO_FIND = Array.from(
   new Set(
@@ -40,18 +20,14 @@ const NUMBERS_TO_FIND = Array.from(
 /**
  * 2️⃣ Start Vision OCR on PDFs in the input bucket, writing JSON to the output bucket
  */
-/**
- * 2️⃣ Start Vision OCR on each PDF in the input bucket
- *    Builds one request per file, since Vision requires single-file URIs.
- */
 function startVisionOcr() {
   const token = ScriptApp.getOAuthToken();
   const bucket = GCS_INPUT_BUCKET;         // 'invoicing-inputs'
   const prefix = GCS_INPUT_PREFIX;         // e.g. '' or 'some/subfolder'
   
   // 1) List all objects under invoices-inputs/
-  const listUrl = https://storage.googleapis.com/storage/v1/b/${bucket}/o
-                + (prefix ? ?prefix=${encodeURIComponent(prefix + '/')} : '');
+  const listUrl = `https://storage.googleapis.com/storage/v1/b/${bucket}/o`
+                + (prefix ? `?prefix=${encodeURIComponent(prefix + '/')}` : '');
   const listRes = UrlFetchApp.fetch(listUrl, {
     headers: { Authorization: 'Bearer ' + token }
   });
@@ -69,12 +45,12 @@ function startVisionOcr() {
     .filter(o => o.name.toLowerCase().endsWith('.pdf'))
     .map(o => ({
       inputConfig: {
-        gcsSource: { uri: gs://${bucket}/${o.name} },
+        gcsSource: { uri: `gs://${bucket}/${o.name}` },
         mimeType: 'application/pdf'
       },
       features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
       outputConfig: {
-        gcsDestination: { uri: gs://${GCS_OUTPUT_BUCKET}/${GCS_OUTPUT_PREFIX}/ },
+        gcsDestination: { uri: `gs://${GCS_OUTPUT_BUCKET}/${GCS_OUTPUT_PREFIX}/` },
         batchSize: 1
       }
     }));
@@ -107,7 +83,7 @@ function startVisionOcr() {
  */
 function waitForVisionOperation(opName, timeoutSec = 300) {
   const token = ScriptApp.getOAuthToken();
-  const url   = https://vision.googleapis.com/v1/${opName};
+  const url   = `https://vision.googleapis.com/v1/${opName}`;
   const start = Date.now();
 
   while (Date.now() - start < timeoutSec * 1000) {
@@ -127,21 +103,21 @@ function waitForVisionOperation(opName, timeoutSec = 300) {
  */
 function listGcsObjects(bucket, prefix) {
   const token = ScriptApp.getOAuthToken();
-  const url = https://storage.googleapis.com/storage/v1/b/${bucket}/o
-            + (prefix ? ?prefix=${encodeURIComponent(prefix + '/')} : '');
+  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o`
+            + (prefix ? `?prefix=${encodeURIComponent(prefix + '/')}` : '');
   const res = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } });
   if (res.getResponseCode() !== 200) {
-    throw new Error(Failed to list objects in ${bucket}: ${res.getContentText()});
+    throw new Error(`Failed to list objects in ${bucket}: ${res.getContentText()}`);
   }
   return JSON.parse(res.getContentText()).items || [];
 }
 
 function getGcsObjectText(bucket, objectName) {
   const token = ScriptApp.getOAuthToken();
-  const url = https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectName)}?alt=media;
+  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectName)}?alt=media`;
   const res = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } });
   if (res.getResponseCode() !== 200) {
-    throw new Error(Failed to fetch ${objectName}: ${res.getContentText()});
+    throw new Error(`Failed to fetch ${objectName}: ${res.getContentText()}`);
   }
   return res.getContentText();
 }
@@ -160,13 +136,13 @@ function startVisionOcr() {
       requests: [{
         inputConfig: {
           // Use the raw object name, **not** encodeURIComponent
-          gcsSource: { uri: gs://${GCS_INPUT_BUCKET}/${pdfName} },
+          gcsSource: { uri: `gs://${GCS_INPUT_BUCKET}/${pdfName}` },
           mimeType: 'application/pdf'
         },
         features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
         outputConfig: {
           // Put each PDF's outputs under its own folder
-          gcsDestination: { uri: gs://${GCS_OUTPUT_BUCKET}/${base}/ },
+          gcsDestination: { uri: `gs://${GCS_OUTPUT_BUCKET}/${base}/` },
           batchSize: 1
         }
       }]
@@ -182,7 +158,7 @@ function startVisionOcr() {
       }
     );
     if (res.getResponseCode() !== 200) {
-      throw new Error(Vision start failed for ${pdfName}: ${res.getContentText()});
+      throw new Error(`Vision start failed for ${pdfName}: ${res.getContentText()}`);
     }
     const op = JSON.parse(res.getContentText());
     Logger.log('📤 OCR job for %s started: %s', pdfName, op.name);
@@ -206,22 +182,22 @@ function copyRenameAndDownloadMatchedPdfs(foundMap, folderId) {
 
   Object.entries(foundMap).forEach(([pdfName, nums]) => {
     if (!nums.length) return;
-    const newName = ${nums[0]}.pdf;
+    const newName = `${nums[0]}.pdf`;
 
     // Fetch from INPUT bucket
     const inputRes = UrlFetchApp.fetch(
-      https://storage.googleapis.com/storage/v1/b/${GCS_INPUT_BUCKET}/o/${encodeURIComponent(pdfName)}?alt=media,
+      `https://storage.googleapis.com/storage/v1/b/${GCS_INPUT_BUCKET}/o/${encodeURIComponent(pdfName)}?alt=media`,
       { headers: { Authorization: 'Bearer ' + token } }
     );
     if (inputRes.getResponseCode() !== 200) {
-      Logger.log(⚠️ Failed to fetch ${pdfName}: ${inputRes.getResponseCode()});
+      Logger.log(`⚠️ Failed to fetch ${pdfName}: ${inputRes.getResponseCode()}`);
       return;
     }
     const pdfBlob = inputRes.getBlob().setName(newName);
 
     // Upload to OUTPUT bucket
     const uploadRes = UrlFetchApp.fetch(
-      https://storage.googleapis.com/upload/storage/v1/b/${GCS_OUTPUT_BUCKET}/o?uploadType=media&name=${encodeURIComponent(newName)},
+      `https://storage.googleapis.com/upload/storage/v1/b/${GCS_OUTPUT_BUCKET}/o?uploadType=media&name=${encodeURIComponent(newName)}`,
       {
         method:      'post',
         contentType: 'application/pdf',
@@ -230,24 +206,24 @@ function copyRenameAndDownloadMatchedPdfs(foundMap, folderId) {
       }
     );
     if (uploadRes.getResponseCode() === 200) {
-      Logger.log(✅ GCS: ${newName});
+      Logger.log(`✅ GCS: ${newName}`);
     } else {
-      Logger.log(⚠️ GCS upload failed for ${newName}: ${uploadRes.getResponseCode()});
+      Logger.log(`⚠️ GCS upload failed for ${newName}: ${uploadRes.getResponseCode()}`);
     }
 
     // Save into the specified Drive folder
     try {
       driveFolder.createFile(pdfBlob);  // Creates the PDF inside folder by ID :contentReference[oaicite:1]{index=1}
-      Logger.log(📂 Drive: saved ${newName} into folder ID ${folderId});
+      Logger.log(`📂 Drive: saved ${newName} into folder ID ${folderId}`);
     } catch (e) {
-      Logger.log(⚠️ Drive save failed for ${newName}: ${e});
+      Logger.log(`⚠️ Drive save failed for ${newName}: ${e}`);
     }
   });
 }
 
 
 /**
- * Searches Gmail for messages matching query, pulls down all PDF attachments,
+ * Searches Gmail for messages matching `query`, pulls down all PDF attachments,
  * and uploads them straight into your GCS input bucket.
  *
  * @param {string} query  Any valid Gmail search string (e.g. 'from:me has:attachment filename:pdf')
@@ -265,10 +241,10 @@ function fetchPdfsFromGmailAndUpload(query) {
       msg.getAttachments().forEach(att => {
         if (att.getContentType() === MimeType.PDF) {
           const fileName = att.getName();
-          const objectName = prefix ? ${prefix}/${fileName} : fileName;
+          const objectName = prefix ? `${prefix}/${fileName}` : fileName;
           const uploadUrl  =
-            https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o +
-            ?uploadType=media&name=${encodeURIComponent(objectName)};
+            `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o` +
+            `?uploadType=media&name=${encodeURIComponent(objectName)}`;
 
           const res = UrlFetchApp.fetch(uploadUrl, {
             method:      'post',
@@ -278,17 +254,17 @@ function fetchPdfsFromGmailAndUpload(query) {
           });
 
           if (res.getResponseCode() === 200) {
-            Logger.log(📥 Fetched & uploaded: gs://${bucket}/${objectName});
+            Logger.log(`📥 Fetched & uploaded: gs://${bucket}/${objectName}`);
             uploadCount++;
           } else {
-            Logger.log(⚠️ Upload failed for ${fileName}: ${res.getResponseCode()});
+            Logger.log(`⚠️ Upload failed for ${fileName}: ${res.getResponseCode()}`);
           }
         }
       });
     });
   });
 
-  Logger.log(✅ Done. Total PDFs uploaded: ${uploadCount});
+  Logger.log(`✅ Done. Total PDFs uploaded: ${uploadCount}`);
 }
 
 
@@ -302,7 +278,7 @@ function fetchPdfsFromGmailAndUpload(query) {
  */
 function ensureBucket(bucketName) {
   const token = ScriptApp.getOAuthToken();
-  const url = https://storage.googleapis.com/storage/v1/b?project=${YOUR_PROJECT_ID};
+  const url = `https://storage.googleapis.com/storage/v1/b?project=${YOUR_PROJECT_ID}`;
   const payload = JSON.stringify({ name: bucketName });
   const res = UrlFetchApp.fetch(url, {
     method:      'post',
@@ -311,11 +287,11 @@ function ensureBucket(bucketName) {
     payload
   });
   if (res.getResponseCode() === 409) {
-    Logger.log(Bucket "${bucketName}" already exists.);
+    Logger.log(`Bucket "${bucketName}" already exists.`);
   } else if (res.getResponseCode() === 200) {
-    Logger.log(Created bucket "${bucketName}".);
+    Logger.log(`Created bucket "${bucketName}".`);
   } else {
-    throw new Error(Failed to create bucket: ${res.getContentText()});
+    throw new Error(`Failed to create bucket: ${res.getContentText()}`);
   }
 }
 
@@ -328,20 +304,20 @@ function deleteBucketAndContents(bucketName) {
   const token = ScriptApp.getOAuthToken();
   
   // 1) List all objects in the bucket
-  const listUrl = https://storage.googleapis.com/storage/v1/b/${bucketName}/o;
+  const listUrl = `https://storage.googleapis.com/storage/v1/b/${bucketName}/o`;
   const listRes = UrlFetchApp.fetch(listUrl, {
     headers: { Authorization: 'Bearer ' + token },
     muteHttpExceptions: true
   });
   if (listRes.getResponseCode() !== 200) {
-    throw new Error(Failed to list objects in ${bucketName}: ${listRes.getContentText()});
+    throw new Error(`Failed to list objects in ${bucketName}: ${listRes.getContentText()}`);
   }
   const items = JSON.parse(listRes.getContentText()).items || [];
   
   // 2) Delete each object
   items.forEach(obj => {
     const deleteObjUrl =
-      https://storage.googleapis.com/storage/v1/b/${bucketName}/o/ +
+      `https://storage.googleapis.com/storage/v1/b/${bucketName}/o/` +
       encodeURIComponent(obj.name);
     const delRes = UrlFetchApp.fetch(deleteObjUrl, {
       method: 'delete',
@@ -349,23 +325,23 @@ function deleteBucketAndContents(bucketName) {
       muteHttpExceptions: true
     });
     if (delRes.getResponseCode() !== 204) {
-      Logger.log(⚠️ Could not delete object ${obj.name}: ${delRes.getResponseCode()});
+      Logger.log(`⚠️ Could not delete object ${obj.name}: ${delRes.getResponseCode()}`);
     } else {
-      Logger.log(Deleted object: ${obj.name});
+      Logger.log(`Deleted object: ${obj.name}`);
     }
   });
   
   // 3) Delete the now‑empty bucket
-  const deleteBucketUrl = https://storage.googleapis.com/storage/v1/b/${bucketName};
+  const deleteBucketUrl = `https://storage.googleapis.com/storage/v1/b/${bucketName}`;
   const bucketRes = UrlFetchApp.fetch(deleteBucketUrl, {
     method: 'delete',
     headers: { Authorization: 'Bearer ' + token },
     muteHttpExceptions: true
   });
   if (bucketRes.getResponseCode() === 204) {
-    Logger.log(✅ Bucket "${bucketName}" deleted successfully.);
+    Logger.log(`✅ Bucket "${bucketName}" deleted successfully.`);
   } else {
-    throw new Error(Failed to delete bucket ${bucketName}: ${bucketRes.getContentText()});
+    throw new Error(`Failed to delete bucket ${bucketName}: ${bucketRes.getContentText()}`);
   }
 }
 
@@ -391,15 +367,15 @@ function callFetch() {
   
   // Build include and exclude strings
   const includeClause = includedTo
-    .map(addr => (to:${addr} OR cc:${addr}))
+    .map(addr => `(to:${addr} OR cc:${addr})`)
     .join(' OR ');
   const excludeClause = excludedTo
-    .map(addr => -to:${addr})
+    .map(addr => `-to:${addr}`)
     .join(' ');
   
   // Combine inbox and sent searches
   const query = [
-    (${includeClause}),         // include these recipients
+    `(${includeClause})`,         // include these recipients
     excludeClause,               // exclude these recipients
     'has:attachment',
     'filename:pdf',
@@ -428,7 +404,7 @@ function scanFolderPdfsForNumbers() {
   jobs.forEach(({ pdfName, base }) => {
     const outputs = listGcsObjects(GCS_OUTPUT_BUCKET, base);
     if (!outputs.length) {
-      Logger.log(⚠️ No OCR output for ${pdfName});
+      Logger.log(`⚠️ No OCR output for ${pdfName}`);
       return;
     }
     let fullText = '';
@@ -445,7 +421,7 @@ function scanFolderPdfsForNumbers() {
         found[pdfName] = found[pdfName] || [];
         if (!found[pdfName].includes(label)) {
           found[pdfName].push(label);
-          Logger.log(✔ ${pdfName}: found "${label}");
+          Logger.log(`✔ ${pdfName}: found "${label}"`);
         }
       }
     });
@@ -470,12 +446,12 @@ function scanFolderPdfsForNumbers() {
   Object.entries(found).forEach(([pdfName, labels]) => {
     // Fetch PDF from your input bucket
     const resp = UrlFetchApp.fetch(
-      https://storage.googleapis.com/storage/v1/b/${GCS_INPUT_BUCKET}/o/ +
-      encodeURIComponent(pdfName) + ?alt=media,
-      { headers: { Authorization: Bearer ${token} }}
+      `https://storage.googleapis.com/storage/v1/b/${GCS_INPUT_BUCKET}/o/` +
+      encodeURIComponent(pdfName) + `?alt=media`,
+      { headers: { Authorization: `Bearer ${token}` }}
     );
     if (resp.getResponseCode() !== 200) {
-      Logger.log(⚠️ Could not fetch PDF ${pdfName}: ${resp.getResponseCode()});
+      Logger.log(`⚠️ Could not fetch PDF ${pdfName}: ${resp.getResponseCode()}`);
       return;
     }
     const pdfBlob = resp.getBlob().setName(pdfName);
@@ -500,15 +476,13 @@ function scanFolderPdfsForNumbers() {
 
         // Save the PDF into that sub‑folder
         target.createFile(pdfBlob);
-        Logger.log(📂 Saved ${pdfName} (label="${label}") → folder "${target.getName()}");
+        Logger.log(`📂 Saved ${pdfName} (label="${label}") → folder "${target.getName()}"`);
       });
     });
   });
 
   return found;
 }
-
-
 
 /**
  * Convenience: Delete both your configured input & output buckets.
